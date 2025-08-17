@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert'; // Para jsonEncode / jsonDecode
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // SharedPreferences
 
 void main() {
   runApp(const MyApp1());
@@ -24,12 +26,26 @@ double vitima(double a) {
 
 // lista global
 List<Map<String, dynamic>> historicoResultados = [];
-void salvarResultado(int pontos, int tempo) {
+
+// Salvar resultado e persistir localmente
+Future<void> salvarResultado(int pontos, int tempo) async {
   historicoResultados.add({
     'pontos': pontos,
     'tempo': tempo,
-    'data': DateTime.now(),
+    'data': DateTime.now().toString(),
   });
+  final prefs = await SharedPreferences.getInstance();
+  prefs.setString('historico', jsonEncode(historicoResultados));
+}
+
+// Carregar histórico do dispositivo
+Future<void> carregarHistorico() async {
+  final prefs = await SharedPreferences.getInstance();
+  String? jsonString = prefs.getString('historico');
+  if (jsonString != null) {
+    List<dynamic> jsonList = jsonDecode(jsonString);
+    historicoResultados = jsonList.cast<Map<String, dynamic>>();
+  }
 }
 
 class MyApp1 extends StatelessWidget {
@@ -75,6 +91,12 @@ class _HomePageState extends State<HomePage> {
   List.generate(8, (_) => TextEditingController());
 
   @override
+  void initState() {
+    super.initState();
+    carregarHistorico(); // Carregar histórico ao iniciar o app
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Cálculo do total
     int baseTotal = gangorra +
@@ -106,9 +128,11 @@ class _HomePageState extends State<HomePage> {
               const Text("OBR SCORER",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               Text("⏲️ ${formatTime(timer)}",
-                  style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+                  style:
+                  const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
               Text(" $total1 Pts",
-                  style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+                  style:
+                  const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -138,43 +162,35 @@ class _HomePageState extends State<HomePage> {
                 blocoCampo(
                     "Qtd. ladrilhos com gaps",
                     controllers[0],
-                        (v) =>
-                        setState(() => gaps = 10 * (int.tryParse(v) ?? 0))),
+                        (v) => setState(() => gaps = 10 * (int.tryParse(v) ?? 0))),
                 blocoCampo(
                     "Qtd. Gangorras",
                     controllers[1],
-                        (v) =>
-                        setState(() => gangorra = 20 * (int.tryParse(v) ?? 0))),
+                        (v) => setState(() => gangorra = 20 * (int.tryParse(v) ?? 0))),
                 blocoCampo(
                     "Qtd. Interseções ou Becos",
                     controllers[2],
-                        (v) =>
-                        setState(() => intersecao = 10 * (int.tryParse(v) ?? 0))),
+                        (v) => setState(() => intersecao = 10 * (int.tryParse(v) ?? 0))),
                 blocoCampo(
                     "Qtd. Obstáculos",
                     controllers[3],
-                        (v) =>
-                        setState(() => obstaculo = 20 * (int.tryParse(v) ?? 0))),
+                        (v) => setState(() => obstaculo = 20 * (int.tryParse(v) ?? 0))),
                 blocoCampo(
                     "Qtd. Ladrilhos com rampa",
                     controllers[4],
-                        (v) =>
-                        setState(() => rampa = 10 * (int.tryParse(v) ?? 0))),
+                        (v) => setState(() => rampa = 10 * (int.tryParse(v) ?? 0))),
                 blocoCampo(
                     "Qtd. Ladrilhos com lombada",
                     controllers[5],
-                        (v) =>
-                        setState(() => lombadas = 10 * (int.tryParse(v) ?? 0))),
+                        (v) => setState(() => lombadas = 10 * (int.tryParse(v) ?? 0))),
                 blocoCampo(
                     "Qtd. ladrilhos 1ª tentativa",
                     controllers[6],
-                        (v) =>
-                        setState(() => ladrilhoP = 5 * (int.tryParse(v) ?? 0))),
+                        (v) => setState(() => ladrilhoP = 5 * (int.tryParse(v) ?? 0))),
                 blocoCampo(
                     "Qtd. ladrilhos 2ª tentativa",
                     controllers[7],
-                        (v) =>
-                        setState(() => ladrilhoS = 3 * (int.tryParse(v) ?? 0))),
+                        (v) => setState(() => ladrilhoS = 3 * (int.tryParse(v) ?? 0))),
                 blocoCampo(
                     "Qtd. ladrilhos 3ª tentativa",
                     TextEditingController(),
@@ -210,14 +226,6 @@ class _HomePageState extends State<HomePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    botao("Iniciar Timer", Colors.green, () {
-                      cronometro?.cancel();
-                      setState(() => timer = 0);
-                      cronometro = Timer.periodic(const Duration(seconds: 1), (t) {
-                        if (timer < 300) setState(() => timer++);
-                        else t.cancel();
-                      });
-                    }),
                     botao("Reset Timer", Colors.red, () {
                       cronometro?.cancel();
                       setState(() => timer = 0);
@@ -230,16 +238,19 @@ class _HomePageState extends State<HomePage> {
                         ladrilhoum = ladrilhodois = false;
                         bonusExtra = bonusExtra2 = 0;
                         vitimacerta = vitimaerrada = 1;
-                        for (var c in controllers) c.clear();
+                        for (var c in controllers) {
+                          c.clear();
+                        }
                       });
                     }),
                   ],
                 ),
+
+                Center(child: Text("Inspiração e apoio: Murilo Barreto e FLL SCORER"))
               ],
             ),
           ),
         ),
-
 
         bottomNavigationBar: BottomAppBar(
           color: Colors.red.shade700,
@@ -257,19 +268,34 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.checklist),
-                color: Colors.white,
-                onPressed: () {},
-              ),
-              IconButton(
                 icon: const Icon(Icons.save),
                 color: Colors.white,
-                onPressed: () {
-                  salvarResultado(total1, timer);
+                onPressed: () async {
+                  await salvarResultado(total1, timer);
                   ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Resultado salvo!")));
+                },),
+                IconButton(
+                  icon: const Icon(Icons.play_arrow),
+                  color: Colors.white,
+                  onPressed: () async {
+                    cronometro?.cancel();
+                    setState(() => timer = 0);
+                    cronometro = Timer.periodic(const Duration(seconds: 1), (t) {
+                      if (timer < 300) setState(() => timer++);
+                      else t.cancel();
+                    });
+
+                  },),
+              IconButton(
+                icon: const Icon(Icons.pause), // Ícone de pause
+                color: Colors.white,
+                onPressed: () {
+                  cronometro?.cancel(); // Pausa o timer
                 },
               ),
+
+
             ],
           ),
         ),
