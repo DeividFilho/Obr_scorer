@@ -1,11 +1,11 @@
-import 'dart:async'; // IMPORTANTE para usar Timer
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-// Funções para multiplicadores
+// Funções para multiplicadores (NÃO MEXIDAS)
 double vitimaerradas(double a) {
   double x = 1;
   if (a == 1) x = 1.1;
@@ -24,59 +24,37 @@ double vitima(double a) {
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
-
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
-  int gangorra = 0;
-  int gaps = 0;
-  int intersecao_ou_beco_sem_saida = 0;
-  int obstaculo = 0;
-  int rampa = 0;
-  int lombadas = 0;
-  int passagem = 0;
-  int chegada = 0;
-  int ladrilho1 = 0;
-  int ladrilho2 = 0;
-  bool ladrilhoum = false;
-  bool ladrilhodois = false;
+  // Pontos
+  int gangorra = 0, gaps = 0, intersecao = 0, obstaculo = 0, rampa = 0, lombadas = 0;
+  int ladrilho1 = 0, ladrilhoP = 0, ladrilhoS = 0, ladrilhoT = 0;
+  bool ladrilhoum = false, ladrilhodois = false;
   int quantfalha = 0;
-  int ladrilhoP = 0;
-  int ladrilhoS = 0;
-  int ladrilhoT = 0;
-  double vitimacerta = 1;
-  double vitimaerrada = 1;
 
-  // Controllers para os TextFields
-  final TextEditingController gapsController = TextEditingController();
-  final TextEditingController gangorraController = TextEditingController();
-  final TextEditingController intersecaoController = TextEditingController();
-  final TextEditingController obstaculoController = TextEditingController();
-  final TextEditingController rampaController = TextEditingController();
-  final TextEditingController lombadasController = TextEditingController();
-  final TextEditingController ladrilhoPController = TextEditingController();
-  final TextEditingController ladrilhoSController = TextEditingController();
-  final TextEditingController ladrilhoTController = TextEditingController();
-  final TextEditingController falhasController = TextEditingController();
+  // Multiplicadores de vítimas (NÃO MEXIDOS)
+  double vitimacerta = 1, vitimaerrada = 1;
+  double bonusExtra = 0, bonusExtra2 = 0;
 
-  int timer = 0; // tempo em segundos
-  Timer? cronometro; // referência do timer
+  // Timer
+  int timer = 0;
+  Timer? cronometro;
 
-  double bonusExtra = 0;  // slider 1 multiplicador
-  double bonusExtra2 = 0; // slider 2 multiplicador
+  // Controllers agrupados
+  final List<TextEditingController> controllers = List.generate(8, (_) => TextEditingController());
 
   @override
   Widget build(BuildContext context) {
+    // Cálculo do total
     int baseTotal = gangorra +
         gaps +
-        intersecao_ou_beco_sem_saida +
+        intersecao +
         obstaculo +
         rampa +
         lombadas +
-        passagem +
-        chegada +
         ladrilho1 +
         ladrilhoP +
         ladrilhoS +
@@ -84,14 +62,10 @@ class _MyAppState extends State<MyApp> {
         (ladrilhodois ? (60 - (quantfalha * 5)) : 0);
 
     double total = (baseTotal * vitimacerta) * vitimaerrada;
-    int total1 = total.floorToDouble().toInt();
+    int total1 = total.floor();
 
-    // Converter segundos para mm:ss
-    String formatTime(int seconds) {
-      int min = seconds ~/ 60;
-      int sec = seconds % 60;
-      return "${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}";
-    }
+    // Formatar tempo mm:ss
+    String formatTime(int s) => "${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}";
 
     return MaterialApp(
       home: Scaffold(
@@ -100,12 +74,9 @@ class _MyAppState extends State<MyApp> {
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              const Text("OBR SCORER",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              Text("⏲️ ${formatTime(timer)}",
-                  style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
-              Text(" $total1 Pts",
-                  style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+              const Text("OBR SCORER", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text("⏲️ ${formatTime(timer)}", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+              Text(" $total1 Pts", style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -115,192 +86,83 @@ class _MyAppState extends State<MyApp> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Ladrilho primeira tentativa
                 blocoCheckbox(
                   label: "Ladrilho Superado de primeira tentativa",
                   value: ladrilhoum,
-                  onChanged: (val) {
-                    setState(() {
-                      ladrilhoum = val;
-                      ladrilho1 = ladrilhoum ? 5 : 0;
-                    });
-                  },
+                  onChanged: (val) => setState(() {
+                    ladrilhoum = val;
+                    ladrilho1 = val ? 5 : 0;
+                  }),
                 ),
 
+                // Linha de chegada (NÃO MEXIDA)
                 blocoCheckbox(
                   label: "Linha de chegada",
                   value: ladrilhodois,
-                  onChanged: (val) {
-                    setState(() {
-                      ladrilhodois = val;
-                      ladrilho2 = ladrilhodois ? 60 : 0;
-                    });
-                  },
+                  onChanged: (val) => setState(() => ladrilhodois = val),
                 ),
 
-                blocoCampo("Quantidade ladrilhos com gaps Superados",gapsController, (value) {
-                  setState(() {
-                    gaps = 10 * (int.tryParse(value) ?? 0);
-                  });
-                }),
-                blocoCampo("Quantidade Gangorras Superados", gangorraController, (value) {
-                  setState(() {
-                    gangorra = 20 * (int.tryParse(value) ?? 0);
-                  });
-                }),
-                blocoCampo("Quantidade Interseção ou Beco sem Saída Superados", intersecaoController, (value) {
-                  setState(() {
-                    intersecao_ou_beco_sem_saida = 10 * (int.tryParse(value) ?? 0);
-                  });
-                }),
-                blocoCampo("Quantidade Obstáculos Superados", obstaculoController,(value) {
-                  setState(() {
-                    obstaculo = 20 * (int.tryParse(value) ?? 0);
-                  });
-                }),
-                blocoCampo("Quantidade Ladrilhos com Rampa Superados",rampaController, (value) {
-                  setState(() {
-                    rampa = 10 * (int.tryParse(value) ?? 0);
-                  });
-                }),
-                blocoCampo("Quantidade Ladrilhos com Lombada Superados",lombadasController, (value) {
-                  setState(() {
-                    lombadas = 10 * (int.tryParse(value) ?? 0);
-                  });
-                }),
-                blocoCampo("Quantidade Ladrilhos Superados na primeira tentativa",ladrilhoPController,(value) {
-                  setState(() {
-                    ladrilhoP = 5 * (int.tryParse(value) ?? 0);
-                  });
-                }),
-                blocoCampo("Quantidade Ladrilhos Superados na segunda tentativa",ladrilhoSController,(value) {
-                  setState(() {
-                    ladrilhoS = 3 * (int.tryParse(value) ?? 0);
-                  });
-                }),
-                blocoCampo("Quantidade Ladrilhos Superados na terceira tentativa",ladrilhoTController,(value) {
-                  setState(() {
-                    ladrilhoT = 1 * (int.tryParse(value) ?? 0);
-                  });
-                }),
-                blocoCampo("Quantidade de falhas",falhasController, (value) {
-                  setState(() {
-                    quantfalha = int.tryParse(value) ?? 0;
-                  });
-                }),
+                blocoCampo("Qtd. ladrilhos com gaps", controllers[0], (v) => setState(() => gaps = 10 * (int.tryParse(v) ?? 0))),
+                blocoCampo("Qtd. Gangorras", controllers[1], (v) => setState(() => gangorra = 20 * (int.tryParse(v) ?? 0))),
+                blocoCampo("Qtd. Interseções ou Becos", controllers[2], (v) => setState(() => intersecao = 10 * (int.tryParse(v) ?? 0))),
+                blocoCampo("Qtd. Obstáculos", controllers[3], (v) => setState(() => obstaculo = 20 * (int.tryParse(v) ?? 0))),
+                blocoCampo("Qtd. Ladrilhos com rampa", controllers[4], (v) => setState(() => rampa = 10 * (int.tryParse(v) ?? 0))),
+                blocoCampo("Qtd. Ladrilhos com lombada", controllers[5], (v) => setState(() => lombadas = 10 * (int.tryParse(v) ?? 0))),
+                blocoCampo("Qtd. ladrilhos 1ª tentativa", controllers[6], (v) => setState(() => ladrilhoP = 5 * (int.tryParse(v) ?? 0))),
+                blocoCampo("Qtd. ladrilhos 2ª tentativa", controllers[7], (v) => setState(() => ladrilhoS = 3 * (int.tryParse(v) ?? 0))),
+                blocoCampo("Qtd. ladrilhos 3ª tentativa", TextEditingController(), (v) => setState(() => ladrilhoT = 1 * (int.tryParse(v) ?? 0))),
+                blocoCampo("Quantidade de falhas", TextEditingController(), (v) => setState(() => quantfalha = int.tryParse(v) ?? 0)),
 
                 const SizedBox(height: 20),
 
-                // Slider corrigido para vítimas certas
+                // Sliders vítimas (NÃO MEXIDOS)
                 blocoSlider(
                   label: "Quantidade de vítimas na área certa",
                   value: bonusExtra,
-                  onChanged: (val) {
-                    setState(() {
-                      bonusExtra = val;
-                      vitimacerta = vitima(val);
-                    });
-                  },
+                  onChanged: (val) => setState(() {
+                    bonusExtra = val;
+                    vitimacerta = vitima(val);
+                  }),
                 ),
-
-                // Slider corrigido para vítimas erradas
                 blocoSlider(
                   label: "Quantidade de vítimas na área ERRADA",
                   value: bonusExtra2,
-                  onChanged: (val1) {
-                    setState(() {
-                      bonusExtra2 = val1;
-                      vitimaerrada = vitimaerradas(val1);
-                    });
-                  },
+                  onChanged: (val) => setState(() {
+                    bonusExtra2 = val;
+                    vitimaerrada = vitimaerradas(val);
+                  }),
                 ),
 
                 const SizedBox(height: 20),
 
+                // Botões
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.all(15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () {
-                        cronometro?.cancel();
-                        setState(() { timer = 0; });
-                        cronometro = Timer.periodic(const Duration(seconds: 1), (t) {
-                          if (timer < 300) {
-                            setState(() { timer++; });
-                          } else {
-                            t.cancel();
-                          }
-                        });
-                      },
-                      child: const Text("Iniciar Timer"),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.all(15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () {
-                        cronometro?.cancel();
-                        setState(() { timer = 0; });
-                      },
-                      child: const Text("Reset Timer"),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.all(15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          gangorra = 0;
-                          gaps = 0;
-                          intersecao_ou_beco_sem_saida = 0;
-                          obstaculo = 0;
-                          rampa = 0;
-                          lombadas = 0;
-                          passagem = 0;
-                          chegada = 0;
-                          ladrilho1 = 0;
-                          ladrilho2 = 0;
-                          ladrilhoum = false;
-                          ladrilhodois = false;
-                          quantfalha = 0;
-                          ladrilhoP = 0;
-                          ladrilhoS = 0;
-                          ladrilhoT = 0;
-                          bonusExtra = 0;
-                          bonusExtra2 = 0;
-                          vitimacerta = 0;
-                          vitimaerrada = 0;
-                          gapsController.clear();
-                          gangorraController.clear();
-                          intersecaoController.clear();
-                          obstaculoController.clear();
-                          rampaController.clear();
-                          lombadasController.clear();
-                          ladrilhoPController.clear();
-                          ladrilhoSController.clear();
-                          ladrilhoTController.clear();
-                          falhasController.clear();
-                        });
-                      },
-                      child: const Text("Limpar"),
-                    ),
+                    botao("Iniciar Timer", Colors.green, () {
+                      cronometro?.cancel();
+                      setState(() => timer = 0);
+                      cronometro = Timer.periodic(const Duration(seconds: 1), (t) {
+                        if (timer < 300) setState(() => timer++);
+                        else t.cancel();
+                      });
+                    }),
+                    botao("Reset Timer", Colors.red, () {
+                      cronometro?.cancel();
+                      setState(() => timer = 0);
+                    }),
+                    botao("Limpar", Colors.red, () {
+                      cronometro?.cancel();
+                      setState(() {
+                        gangorra = gaps = intersecao = obstaculo = rampa = lombadas = 0;
+                        ladrilho1 = ladrilhoP = ladrilhoS = ladrilhoT = quantfalha = 0;
+                        ladrilhoum = ladrilhodois = false;
+                        bonusExtra = bonusExtra2 = 0;
+                        vitimacerta = vitimaerrada = 1;
+                        for (var c in controllers) c.clear();
+                      });
+                    }),
                   ],
                 ),
               ],
@@ -315,10 +177,7 @@ class _MyAppState extends State<MyApp> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 5),
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.red.shade100,
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(10)),
       child: TextField(
         controller: controller,
         decoration: InputDecoration(labelText: label, border: InputBorder.none),
@@ -332,10 +191,7 @@ class _MyAppState extends State<MyApp> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.red.shade100,
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(10)),
       child: Row(
         children: [
           Checkbox(
@@ -354,10 +210,7 @@ class _MyAppState extends State<MyApp> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.red.shade100,
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(10)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -367,12 +220,25 @@ class _MyAppState extends State<MyApp> {
             min: 0,
             max: 3,
             divisions: 3,
-            label: (value.round()).toString(),
+            label: value.round().toString(),
             activeColor: Colors.red.shade700,
             onChanged: onChanged,
           ),
         ],
       ),
+    );
+  }
+
+  Widget botao(String texto, Color cor, VoidCallback onPressed) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: cor,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.all(15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      onPressed: onPressed,
+      child: Text(texto),
     );
   }
 }
