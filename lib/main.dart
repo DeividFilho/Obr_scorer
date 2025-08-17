@@ -391,24 +391,7 @@ class HistoricoPage extends StatelessWidget {
         title: const Text("Histórico"),
         backgroundColor: Colors.red.shade700,
       ),
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.red.shade700,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.checklist),
-              color: Colors.white,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HomePage()),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
+
       body: Padding(
         padding: const EdgeInsets.all(15.0),
         child: SingleChildScrollView(
