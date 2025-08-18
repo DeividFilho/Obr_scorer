@@ -1,33 +1,26 @@
 import 'dart:async';
-import 'dart:convert'; // Para jsonEncode / jsonDecode
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // SharedPreferences
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp1());
 }
 
-// Funções para multiplicadores (NÃO MEXIDAS)
+// Funções otimizadas
 double vitimaerradas(double a) {
-  double x = 1;
-  if (a == 1) x = 1.1;
-  if (a == 2) x = 1.21;
-  if (a == 3) x = 1.331;
-  return x;
+  const valores = {1: 1.1, 2: 1.21, 3: 1.331};
+  return valores[a] ?? 1;
 }
 
 double vitima(double a) {
-  double x = 1;
-  if (a == 1) x = 1.3;
-  if (a == 2) x = 1.69;
-  if (a == 3) x = 2.197;
-  return x;
+  const valores = {1: 1.3, 2: 1.69, 3: 2.197};
+  return valores[a] ?? 1;
 }
 
-// lista global
+// Histórico
 List<Map<String, dynamic>> historicoResultados = [];
 
-// Salvar resultado e persistir localmente
 Future<void> salvarResultado(int pontos, int tempo) async {
   historicoResultados.add({
     'pontos': pontos,
@@ -38,13 +31,12 @@ Future<void> salvarResultado(int pontos, int tempo) async {
   prefs.setString('historico', jsonEncode(historicoResultados));
 }
 
-// Carregar histórico do dispositivo
 Future<void> carregarHistorico() async {
   final prefs = await SharedPreferences.getInstance();
-  String? jsonString = prefs.getString('historico');
+  final jsonString = prefs.getString('historico');
   if (jsonString != null) {
-    List<dynamic> jsonList = jsonDecode(jsonString);
-    historicoResultados = jsonList.cast<Map<String, dynamic>>();
+    historicoResultados =
+        (jsonDecode(jsonString) as List).cast<Map<String, dynamic>>();
   }
 }
 
@@ -53,15 +45,16 @@ class MyApp1 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Exemplo Navegação',
-      home: const HomePage(),
+    return const MaterialApp(
+      title: 'OBR SCORER',
+      home: HomePage(),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -78,7 +71,7 @@ class _HomePageState extends State<HomePage> {
   bool ladrilhoum = false, ladrilhodois = false;
   int quantfalha = 0;
 
-  // Multiplicadores de vítimas (NÃO MEXIDOS)
+  // Multiplicadores
   double vitimacerta = 1, vitimaerrada = 1;
   double bonusExtra = 0, bonusExtra2 = 0;
 
@@ -86,223 +79,184 @@ class _HomePageState extends State<HomePage> {
   int timer = 0;
   Timer? cronometro;
 
-  // Controllers agrupados
-  final List<TextEditingController> controllers =
-  List.generate(8, (_) => TextEditingController());
+  // Controllers (10 campos)
+  final controllers = List.generate(10, (_) => TextEditingController());
 
   @override
   void initState() {
     super.initState();
-    carregarHistorico(); // Carregar histórico ao iniciar o app
+    carregarHistorico();
+  }
+
+  // --- Getters otimizados ---
+  int get baseTotal =>
+      gangorra +
+          gaps +
+          intersecao +
+          obstaculo +
+          rampa +
+          lombadas +
+          ladrilho1 +
+          ladrilhoP +
+          ladrilhoS +
+          ladrilhoT +
+          (ladrilhodois ? (60 - (quantfalha * 5)) : 0);
+
+  int get total => (baseTotal * vitimacerta * vitimaerrada).floor();
+
+  String formatTime(int s) =>
+      "${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}";
+
+  void resetAll() {
+    cronometro?.cancel();
+    setState(() {
+      gangorra = gaps = intersecao = obstaculo = rampa = lombadas = 0;
+      ladrilho1 = ladrilhoP = ladrilhoS = ladrilhoT = quantfalha = 0;
+      ladrilhoum = ladrilhodois = false;
+      bonusExtra = bonusExtra2 = 0;
+      vitimacerta = vitimaerrada = 1;
+      for (var c in controllers) c.clear();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Cálculo do total
-    int baseTotal = gangorra +
-        gaps +
-        intersecao +
-        obstaculo +
-        rampa +
-        lombadas +
-        ladrilho1 +
-        ladrilhoP +
-        ladrilhoS +
-        ladrilhoT +
-        (ladrilhodois ? (60 - (quantfalha * 5)) : 0);
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.red.shade700,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            const Text("OBR SCORER",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text("⏲️ ${formatTime(timer)}",
+                style:
+                const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+            Text(" $total Pts",
+                style:
+                const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(15),
+        children: [
+          // Checkboxes
+          blocoCheckbox(
+            label: "Ladrilho Superado de primeira tentativa",
+            value: ladrilhoum,
+            onChanged: (val) =>
+                setState(() => {ladrilhoum = val, ladrilho1 = val ? 5 : 0}),
+          ),
+          blocoCheckbox(
+            label: "Linha de chegada",
+            value: ladrilhodois,
+            onChanged: (val) => setState(() => ladrilhodois = val),
+          ),
 
-    double total = (baseTotal * vitimacerta) * vitimaerrada;
-    int total1 = total.floor();
+          // Campos de texto
+          blocoCampo("Qtd. ladrilhos com gaps", controllers[0],
+                  (v) => setState(() => gaps = 10 * (int.tryParse(v) ?? 0))),
+          blocoCampo("Qtd. Gangorras", controllers[1],
+                  (v) => setState(() => gangorra = 20 * (int.tryParse(v) ?? 0))),
+          blocoCampo("Qtd. Interseções ou Becos", controllers[2],
+                  (v) => setState(() => intersecao = 10 * (int.tryParse(v) ?? 0))),
+          blocoCampo("Qtd. Obstáculos", controllers[3],
+                  (v) => setState(() => obstaculo = 20 * (int.tryParse(v) ?? 0))),
+          blocoCampo("Qtd. Ladrilhos com rampa", controllers[4],
+                  (v) => setState(() => rampa = 10 * (int.tryParse(v) ?? 0))),
+          blocoCampo("Qtd. Ladrilhos com lombada", controllers[5],
+                  (v) => setState(() => lombadas = 10 * (int.tryParse(v) ?? 0))),
+          blocoCampo("Qtd. ladrilhos 1ª tentativa", controllers[6],
+                  (v) => setState(() => ladrilhoP = 5 * (int.tryParse(v) ?? 0))),
+          blocoCampo("Qtd. ladrilhos 2ª tentativa", controllers[7],
+                  (v) => setState(() => ladrilhoS = 3 * (int.tryParse(v) ?? 0))),
+          blocoCampo("Qtd. ladrilhos 3ª tentativa", controllers[8],
+                  (v) => setState(() => ladrilhoT = 1 * (int.tryParse(v) ?? 0))),
+          blocoCampo("Quantidade de falhas", controllers[9],
+                  (v) => setState(() => quantfalha = int.tryParse(v) ?? 0)),
 
-    // Formatar tempo mm:ss
-    String formatTime(int s) =>
-        "${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}";
+          const SizedBox(height: 20),
 
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.red.shade700,
-          title: Row(
+          // Sliders
+          blocoSlider(
+            label: "Quantidade de vítimas na área certa",
+            value: bonusExtra,
+            onChanged: (val) =>
+                setState(() => {bonusExtra = val, vitimacerta = vitima(val)}),
+          ),
+          blocoSlider(
+            label: "Quantidade de vítimas na área ERRADA",
+            value: bonusExtra2,
+            onChanged: (val) =>
+                setState(() => {bonusExtra2 = val, vitimaerrada = vitimaerradas(val)}),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Botões
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              const Text("OBR SCORER",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              Text("⏲️ ${formatTime(timer)}",
-                  style:
-                  const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
-              Text(" $total1 Pts",
-                  style:
-                  const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+              botao("Reset Timer", Colors.red,
+                      () => setState(() => {cronometro?.cancel(), timer = 0})),
+              botao("Limpar", Colors.red, resetAll),
             ],
           ),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(15.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Ladrilho primeira tentativa
-                blocoCheckbox(
-                  label: "Ladrilho Superado de primeira tentativa",
-                  value: ladrilhoum,
-                  onChanged: (val) => setState(() {
-                    ladrilhoum = val;
-                    ladrilho1 = val ? 5 : 0;
-                  }),
-                ),
-
-                // Linha de chegada (NÃO MEXIDA)
-                blocoCheckbox(
-                  label: "Linha de chegada",
-                  value: ladrilhodois,
-                  onChanged: (val) => setState(() => ladrilhodois = val),
-                ),
-
-                blocoCampo(
-                    "Qtd. ladrilhos com gaps",
-                    controllers[0],
-                        (v) => setState(() => gaps = 10 * (int.tryParse(v) ?? 0))),
-                blocoCampo(
-                    "Qtd. Gangorras",
-                    controllers[1],
-                        (v) => setState(() => gangorra = 20 * (int.tryParse(v) ?? 0))),
-                blocoCampo(
-                    "Qtd. Interseções ou Becos",
-                    controllers[2],
-                        (v) => setState(() => intersecao = 10 * (int.tryParse(v) ?? 0))),
-                blocoCampo(
-                    "Qtd. Obstáculos",
-                    controllers[3],
-                        (v) => setState(() => obstaculo = 20 * (int.tryParse(v) ?? 0))),
-                blocoCampo(
-                    "Qtd. Ladrilhos com rampa",
-                    controllers[4],
-                        (v) => setState(() => rampa = 10 * (int.tryParse(v) ?? 0))),
-                blocoCampo(
-                    "Qtd. Ladrilhos com lombada",
-                    controllers[5],
-                        (v) => setState(() => lombadas = 10 * (int.tryParse(v) ?? 0))),
-                blocoCampo(
-                    "Qtd. ladrilhos 1ª tentativa",
-                    controllers[6],
-                        (v) => setState(() => ladrilhoP = 5 * (int.tryParse(v) ?? 0))),
-                blocoCampo(
-                    "Qtd. ladrilhos 2ª tentativa",
-                    controllers[7],
-                        (v) => setState(() => ladrilhoS = 3 * (int.tryParse(v) ?? 0))),
-                blocoCampo(
-                    "Qtd. ladrilhos 3ª tentativa",
-                    TextEditingController(),
-                        (v) => setState(() => ladrilhoT = 1 * (int.tryParse(v) ?? 0))),
-                blocoCampo(
-                    "Quantidade de falhas",
-                    TextEditingController(),
-                        (v) => setState(() => quantfalha = int.tryParse(v) ?? 0)),
-
-                const SizedBox(height: 20),
-
-                // Sliders vítimas (NÃO MEXIDOS)
-                blocoSlider(
-                  label: "Quantidade de vítimas na área certa",
-                  value: bonusExtra,
-                  onChanged: (val) => setState(() {
-                    bonusExtra = val;
-                    vitimacerta = vitima(val);
-                  }),
-                ),
-                blocoSlider(
-                  label: "Quantidade de vítimas na área ERRADA",
-                  value: bonusExtra2,
-                  onChanged: (val) => setState(() {
-                    bonusExtra2 = val;
-                    vitimaerrada = vitimaerradas(val);
-                  }),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Botões
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    botao("Reset Timer", Colors.red, () {
-                      cronometro?.cancel();
-                      setState(() => timer = 0);
-                    }),
-                    botao("Limpar", Colors.red, () {
-                      cronometro?.cancel();
-                      setState(() {
-                        gangorra = gaps = intersecao = obstaculo = rampa = lombadas = 0;
-                        ladrilho1 = ladrilhoP = ladrilhoS = ladrilhoT = quantfalha = 0;
-                        ladrilhoum = ladrilhodois = false;
-                        bonusExtra = bonusExtra2 = 0;
-                        vitimacerta = vitimaerrada = 1;
-                        for (var c in controllers) {
-                          c.clear();
-                        }
-                      });
-                    }),
-                  ],
-                ),
-
-                Center(child: Text("Inspiração e apoio: Murilo Barreto e FLL SCORER"))
-              ],
+          const SizedBox(height: 10),
+          const Center(
+              child: Text("Inspiração e apoio: Murilo Barreto e FLL SCORER"))
+        ],
+      ),
+      bottomNavigationBar: BottomAppBar(
+        color: Colors.red.shade700,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.history),
+              color: Colors.white,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HistoricoPage()),
+              ),
             ),
-          ),
-        ),
-
-        bottomNavigationBar: BottomAppBar(
-          color: Colors.red.shade700,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.history),
-                color: Colors.white,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HistoricoPage()),
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.save),
-                color: Colors.white,
-                onPressed: () async {
-                  await salvarResultado(total1, timer);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Resultado salvo!")));
-                },),
-                IconButton(
-                  icon: const Icon(Icons.play_arrow),
-                  color: Colors.white,
-                  onPressed: () async {
-                    cronometro?.cancel();
-                    setState(() => timer = 0);
-                    cronometro = Timer.periodic(const Duration(seconds: 1), (t) {
-                      if (timer < 300) setState(() => timer++);
-                      else t.cancel();
-                    });
-
-                  },),
-              IconButton(
-                icon: const Icon(Icons.pause), // Ícone de pause
-                color: Colors.white,
-                onPressed: () {
-                  cronometro?.cancel(); // Pausa o timer
-                },
-              ),
-
-
-            ],
-          ),
+            IconButton(
+              icon: const Icon(Icons.save),
+              color: Colors.white,
+              onPressed: () async {
+                await salvarResultado(total, timer);
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Resultado salvo!"),backgroundColor: Colors.red,));
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.play_arrow),
+              color: Colors.white,
+              onPressed: () {
+                cronometro?.cancel();
+                setState(() => timer = 0);
+                cronometro = Timer.periodic(const Duration(seconds: 1), (t) {
+                  if (timer < 300) {
+                    setState(() => timer++);
+                  } else {
+                    t.cancel();
+                  }
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.pause),
+              color: Colors.white,
+              onPressed: () => cronometro?.cancel(),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  // Widgets reutilizáveis
   Widget blocoCampo(
       String label, TextEditingController controller, Function(String) onChanged) =>
       Container(
@@ -391,31 +345,19 @@ class HistoricoPage extends StatelessWidget {
         title: const Text("Histórico"),
         backgroundColor: Colors.red.shade700,
       ),
-
-      body: Padding(
-        padding: const EdgeInsets.all(15.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              historicoResultados.isEmpty
-                  ? const Center(child: Text("Nenhum resultado registrado."))
-                  : ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: historicoResultados.length,
-                itemBuilder: (context, index) {
-                  final r = historicoResultados[index];
-                  return ListTile(
-                    title: Text("Pontos: ${r['pontos']}"),
-                    subtitle:
-                    Text("Tempo: ${formatTime(r['tempo'])} - ${r['data']}"),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
+      body: historicoResultados.isEmpty
+          ? const Center(child: Text("Nenhum resultado registrado."))
+          : ListView.builder(
+        padding: const EdgeInsets.all(15),
+        itemCount: historicoResultados.length,
+        itemBuilder: (context, index) {
+          final r = historicoResultados[index];
+          return ListTile(
+            title: Text("Pontos: ${r['pontos']}"),
+            subtitle: Text(
+                "Tempo: ${formatTime(r['tempo'])} - ${r['data']}"),
+          );
+        },
       ),
     );
   }
