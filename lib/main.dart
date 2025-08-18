@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
+
 
 void main() {
   runApp(const MyApp1());
@@ -61,6 +63,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // Pontos
+  final player = AudioPlayer();
   int gangorra = 0,
       gaps = 0,
       intersecao = 0,
@@ -234,12 +237,14 @@ class _HomePageState extends State<HomePage> {
               icon: const Icon(Icons.play_arrow),
               color: Colors.white,
               onPressed: () {
+                player.play(AssetSource("sounds/inicio.mp3"));
                 cronometro?.cancel();
                 setState(() => timer = 0);
                 cronometro = Timer.periodic(const Duration(seconds: 1), (t) {
                   if (timer < 300) {
                     setState(() => timer++);
                   } else {
+                    player.play(AssetSource("sounds/fim.mp3"));
                     t.cancel();
                   }
                 });
@@ -248,7 +253,7 @@ class _HomePageState extends State<HomePage> {
             IconButton(
               icon: const Icon(Icons.pause),
               color: Colors.white,
-              onPressed: () => cronometro?.cancel(),
+              onPressed: () {cronometro?.cancel(); player.play(AssetSource("sounds/gameover.mp3"));}
             ),
           ],
         ),
