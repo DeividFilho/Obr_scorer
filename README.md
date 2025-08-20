@@ -1,16 +1,32 @@
-# obr_scorer
+🏆 OBR-SCORER!
 
-A new Flutter project.
+Aplicativo desenvolvido para auxiliar na pontuação de equipes durante as competições da OBR (Olimpíada Brasileira de Robótica) em etapas regionais.
+A ferramenta busca agilizar, organizar e padronizar o processo de marcação de pontos, tornando a competição mais transparente e eficiente.
 
-## Getting Started
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+✨ Funcionalidades
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+✅ Registro rápido de pontuações durante as provas.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+📊 Geração automática de totais.
+
+🕒 Cronômetro/controle de tempo de execução.
+
+📱 Interface simples e intuitiva para árbitros e organizadores.
+
+💾 Exportação/armazenamento dos resultados.
+
+⚙️ Configuração adaptável para diferentes categorias e regras regionais.
+
+
+
+---
+
+🚀 Tecnologias Utilizadas
+
+Linguagem/Framework: (Flutter)
+
+Banco de Dados: Atualização futura
+
